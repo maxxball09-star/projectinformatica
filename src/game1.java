@@ -260,7 +260,7 @@ public class game1 extends JPanel implements KeyListener {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Image fon = Toolkit.getDefaultToolkit().getImage("fonscenet.png");
+        Image fon = Toolkit.getDefaultToolkit().getImage("image//fonscenet.png");
         if (fon != null) {
             g.drawImage(fon, 0, 0, 1200, 900, this);
         } else {
@@ -292,11 +292,11 @@ public class game1 extends JPanel implements KeyListener {
         Image img = null;
         try {
             if (block.type == 1) {
-                img = Toolkit.getDefaultToolkit().getImage("sad.jpg");
+                img = Toolkit.getDefaultToolkit().getImage("images//sad.jpg");
             } else if (block.type == 2) {
-                img = Toolkit.getDefaultToolkit().getImage("angry.jpg");
+                img = Toolkit.getDefaultToolkit().getImage("images//angry.jpg");
             } else {
-                img = Toolkit.getDefaultToolkit().getImage("happy.jpg");
+                img = Toolkit.getDefaultToolkit().getImage("images//happy.jpg");
             }
         } catch (Exception e) {
             img = null;
@@ -321,11 +321,11 @@ public class game1 extends JPanel implements KeyListener {
         Image img = null;
         try {
             if (obj.type == 1) {
-                img = Toolkit.getDefaultToolkit().getImage("sad.jpg");
+                img = Toolkit.getDefaultToolkit().getImage("images//sad.jpg");
             } else if (obj.type == 2) {
-                img = Toolkit.getDefaultToolkit().getImage("angry.jpg");
+                img = Toolkit.getDefaultToolkit().getImage("images//angry.jpg");
             } else {
-                img = Toolkit.getDefaultToolkit().getImage("happy.jpg");
+                img = Toolkit.getDefaultToolkit().getImage("images//happy.jpg");
             }
         } catch (Exception e) {
             img = null;
