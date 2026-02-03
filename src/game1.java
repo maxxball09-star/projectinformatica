@@ -4,7 +4,6 @@ import java.awt.event.*;
 import java.util.Random;
 
 public class game1 extends JPanel implements KeyListener {
-
     Block[] fallenBlocks = new Block[1000];
     int fallenCount = 0;
     GameObject currentObject;
@@ -16,7 +15,15 @@ public class game1 extends JPanel implements KeyListener {
     int happyTickCounter = 0;
     boolean happyFastMode = false;
     Font customFont;
-
+    int[] typeDelayCounter = new int[4];
+    int[] typeDelayThreshold = {2, 1, 3};
+    boolean animatingDrop = false;
+    int animationStep = 0;
+    final int ANIMATION_STEPS = 15;
+    int[] animatingBlocksIndices = new int[1000];
+    int[] animationStartY = new int[1000];
+    int[] animationTargetY = new int[1000];
+    int animatingBlocksCount = 0;
     int[][][] figures = {
             {{0,0}, {1,0}, {2,0}},
             {{0,0}, {0,1}, {0,2}},
@@ -26,7 +33,8 @@ public class game1 extends JPanel implements KeyListener {
             {{0,0}, {-1,1}, {0,1}, {1,1}},
             {{0,0}, {1,0}, {-1,1}, {0,1}, {1,1}}
     };
-
+    int gridWidth = 16;
+    int gridHeight = 10;
     public game1(JFrame parent) {
         this.parentFrame = parent;
         setPreferredSize(new Dimension(1200, 900));
@@ -38,6 +46,33 @@ public class game1 extends JPanel implements KeyListener {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!gameActive) return;
+                if (animatingDrop) {
+                    animationStep++;
+                    for (int i = 0; i < animatingBlocksCount; i++) {
+                        int blockIndex = animatingBlocksIndices[i];
+                        if (fallenBlocks[blockIndex] != null) {
+                            int startY = animationStartY[i];
+                            int targetY = animationTargetY[i];
+                            int newY = startY + (targetY - startY) * animationStep / ANIMATION_STEPS;
+                            fallenBlocks[blockIndex].y = newY;
+                        }
+                    }
+                    if (animationStep >= ANIMATION_STEPS) {
+                        for (int i = 0; i < animatingBlocksCount; i++) {
+                            int blockIndex = animatingBlocksIndices[i];
+                            if (fallenBlocks[blockIndex] != null) {
+                                fallenBlocks[blockIndex].y = animationTargetY[i];
+                                fallenBlocks[blockIndex].gridY = (fallenBlocks[blockIndex].y - 50) / setka_razm;
+                            }
+                        }
+                        animatingDrop = false;
+                        animationStep = 0;
+                        animatingBlocksCount = 0;
+                        checkFullLines();
+                    }
+                    repaint();
+                    return;
+                }
                 if (currentObject.type == 3) {
                     happyTickCounter++;
                     if (happyTickCounter >= 7) {
@@ -45,22 +80,21 @@ public class game1 extends JPanel implements KeyListener {
                         happyTickCounter = 0;
                     }
                 }
-                if (isAtBottom() || hitsOther()) {
-                    freezeObject();
-                    checkFullLines();
-                    if (isGameOver()) {
-                        showGameOver();
-                        return;
-                    }
-                    createNewObject();
-                } else {
-                    int fallSpeed = getFallSpeed(currentObject.type);
-                    int bottom = getBottom(currentObject);
-                    int maxFall = 800 - bottom;
-                    if (fallSpeed > maxFall && maxFall > 0) {
-                        currentObject.objY += maxFall;
-                    } else {
-                        currentObject.objY += fallSpeed;
+                typeDelayCounter[currentObject.type]++;
+                int requiredDelay = typeDelayThreshold[currentObject.type - 1];
+                if (happyFastMode && currentObject.type == 3) {
+                    requiredDelay = 1;
+                }
+                if (typeDelayCounter[currentObject.type] >= requiredDelay) {
+                    typeDelayCounter[currentObject.type] = 0;
+                    if (!moveDown()) {
+                        freezeObject();
+                        checkFullLines();
+                        if (isGameOver()) {
+                            showGameOver();
+                            return;
+                        }
+                        createNewObject();
                     }
                 }
                 repaint();
@@ -68,132 +102,135 @@ public class game1 extends JPanel implements KeyListener {
         });
         gameTimer.start();
     }
-    private int getBottom(GameObject obj) {
-        if (obj == null) return 0;
-
-        int maxY = obj.objY;
-        for (int i = 0; i < obj.obj.length; i++) {
-            int blockY = obj.objY + obj.obj[i][1] * setka_razm;
-            if (blockY > maxY) {
-                maxY = blockY;
+    private boolean moveDown() {
+        if (currentObject == null) return false;
+        for (Block block : currentObject.blocks) {
+            int newGridY = block.gridY + 1;
+            if (newGridY >= gridHeight) {
+                return false;
+            }
+            if (zanyata_li_yacheika(block.gridX, newGridY)) {
+                return false;
             }
         }
-        return maxY + setka_razm;
+        for (Block block : currentObject.blocks) {
+            block.gridY++;
+            block.y = 50 + block.gridY * setka_razm;
+        }
+        currentObject.objY += setka_razm;
+        return true;
+    }
+    private boolean zanyata_li_yacheika(int gridX, int gridY) {
+        for (int i = 0; i < fallenCount; i++) {
+            if (fallenBlocks[i] != null &&
+                    fallenBlocks[i].gridX == gridX &&
+                    fallenBlocks[i].gridY == gridY) {
+                return true;
+            }
+        }
+        return false;
     }
     private void freezeObject() {
-        for (int i = 0; i < currentObject.obj.length; i++) {
-            int blockX = currentObject.objX + currentObject.obj[i][0] * setka_razm;
-            int blockY = currentObject.objY + currentObject.obj[i][1] * setka_razm;
-            if (blockY + setka_razm > 800) {
-                blockY = 800 - setka_razm;
-            }
-            if (fallenCount < fallenBlocks.length) {
-                fallenBlocks[fallenCount] = new Block(blockX, blockY, currentObject.type);
-                fallenCount++;
+        for (Block block : currentObject.blocks) {
+            if (!zanyata_li_yacheika(block.gridX, block.gridY)) {
+                if (fallenCount < fallenBlocks.length) {
+                    fallenBlocks[fallenCount] = new Block(
+                            block.x, block.y,
+                            block.gridX, block.gridY,
+                            currentObject.type
+                    );
+                    fallenCount++;
+                }
             }
         }
+        for (int i = 0; i < typeDelayCounter.length; i++) {
+            typeDelayCounter[i] = 0;
+        }
     }
-
     private void checkFullLines() {
         boolean lineRemoved = true;
         while (lineRemoved) {
             lineRemoved = false;
-            for (int lineY = 50; lineY < 800; lineY += setka_razm) {
-                int blocksInLine = 0;
-                for (int i = 0; i < fallenCount; i++) {
-                    if (fallenBlocks[i] != null) {
-                        if (fallenBlocks[i].y == lineY) {
-                            blocksInLine++;
-                        }
-                    }
-                }
-                if (blocksInLine >= 7) {
-                    removeLine(lineY);
+            for (int gridY = gridHeight - 1; gridY >= 0; gridY--) {
+                if (ryadom_bloki(gridY, 7)) {
+                    udalit_Line(gridY);
                     lineRemoved = true;
                     break;
                 }
             }
         }
     }
-
-    private void removeLine(int lineY) {
+    private void udalit_Line(int removedGridY) {
+        boolean[] lineToRemove = new boolean[fallenCount];
         for (int i = 0; i < fallenCount; i++) {
-            if (fallenBlocks[i] != null && fallenBlocks[i].y == lineY) {
+            if (fallenBlocks[i] != null && fallenBlocks[i].gridY == removedGridY) {
+                lineToRemove[i] = true;
+            }
+        }
+        for (int i = 0; i < fallenCount; i++) {
+            if (lineToRemove[i]) {
                 fallenBlocks[i] = null;
             }
         }
         compressArray();
+        animatingBlocksCount = 0;
+        for (int i = 0; i < fallenCount; i++) {
+            if (fallenBlocks[i] != null && fallenBlocks[i].gridY < removedGridY) {
+                int startY = fallenBlocks[i].y;
+                int targetY = 50 + (fallenBlocks[i].gridY + 1) * setka_razm;
+                animatingBlocksIndices[animatingBlocksCount] = i;
+                animationStartY[animatingBlocksCount] = startY;
+                animationTargetY[animatingBlocksCount] = targetY;
+                animatingBlocksCount++;
+                fallenBlocks[i].gridY++;
+            }
+        }
+        if (animatingBlocksCount > 0) {
+            animatingDrop = true;
+            animationStep = 0;
+        }
     }
+    private boolean ryadom_bloki(int gridY, int minConsecutive) {
+        boolean[] lineCells = new boolean[gridWidth];
 
+        for (int i = 0; i < fallenCount; i++) {
+            if (fallenBlocks[i] != null && fallenBlocks[i].gridY == gridY) {
+                if (fallenBlocks[i].gridX >= 0 && fallenBlocks[i].gridX < gridWidth) {
+                    lineCells[fallenBlocks[i].gridX] = true;
+                }
+            }
+        }
+        int maxConsecutive = 0;
+        int currentConsecutive = 0;
+
+        for (int x = 0; x < gridWidth; x++) {
+            if (lineCells[x]) {
+                currentConsecutive++;
+                if (currentConsecutive > maxConsecutive) {
+                    maxConsecutive = currentConsecutive;
+                }
+            } else {
+                currentConsecutive = 0;
+            }
+        }
+
+        return maxConsecutive >= minConsecutive;
+    }
     private void compressArray() {
         int newIndex = 0;
         Block[] temp = new Block[fallenBlocks.length];
-
         for (int i = 0; i < fallenCount; i++) {
             if (fallenBlocks[i] != null) {
                 temp[newIndex] = fallenBlocks[i];
                 newIndex++;
             }
         }
-
         fallenBlocks = temp;
         fallenCount = newIndex;
     }
-
-    private int getFallSpeed(int type) {
-        if (type == 1) {
-            return 25;
-        } else if (type == 2) {
-            return 27;
-        } else {
-            if (happyFastMode) {
-                return 60;
-            } else {
-                return 10;
-            }
-        }
-    }
-
-    private boolean isAtBottom() {
-        if (currentObject == null) return true;
-
-        for (int i = 0; i < currentObject.obj.length; i++) {
-            int blockY = currentObject.objY + currentObject.obj[i][1] * setka_razm;
-            if (blockY + setka_razm >= 800) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean hitsOther() {
-        if (currentObject == null) return false;
-
-        int fallSpeed = getFallSpeed(currentObject.type);
-
-        for (int i = 0; i < currentObject.obj.length; i++) {
-            int nextBlockY = currentObject.objY + currentObject.obj[i][1] * setka_razm + fallSpeed;
-            if (nextBlockY + setka_razm > 800) {
-                return true;
-            }
-
-            int currentBlockX = currentObject.objX + currentObject.obj[i][0] * setka_razm;
-            int currentBlockY = currentObject.objY + currentObject.obj[i][1] * setka_razm + fallSpeed;
-            for (int j = 0; j < fallenCount; j++) {
-                if (fallenBlocks[j] != null) {
-                    if (Math.abs(currentBlockX - fallenBlocks[j].x) < setka_razm &&
-                            Math.abs(currentBlockY - fallenBlocks[j].y) < setka_razm) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
     private boolean isGameOver() {
         for (int i = 0; i < fallenCount; i++) {
-            if (fallenBlocks[i] != null && fallenBlocks[i].y <= 56) {
+            if (fallenBlocks[i] != null && fallenBlocks[i].gridY < 1) {
                 return true;
             }
         }
@@ -208,51 +245,46 @@ public class game1 extends JPanel implements KeyListener {
                 "Конец игры", JOptionPane.INFORMATION_MESSAGE);
     }
     private void createNewObject() {
-        int startX = getAlignedX();
-        int startY = 56;
         int[][] shape = figures[rand.nextInt(figures.length)];
         int type = rand.nextInt(3) + 1;
-        currentObject = new GameObject(startX, startY, shape, type);
+        int startGridX = getAlignedGridX();
+        int startGridY = 0;
+        Block[] blocks = new Block[shape.length];
+        for (int i = 0; i < shape.length; i++) {
+            int gridX = startGridX + shape[i][0];
+            int gridY = startGridY + shape[i][1];
+            int pixelX = gridX * setka_razm;
+            int pixelY = 50 + gridY * setka_razm;
+            blocks[i] = new Block(pixelX, pixelY, gridX, gridY, type);
+        }
+        currentObject = new GameObject(
+                startGridX * setka_razm,
+                50 + startGridY * setka_razm,
+                shape,
+                type,
+                blocks
+        );
         if (type == 3) {
             happyTickCounter = 0;
             happyFastMode = false;
         }
-    }
-
-    private int getAlignedX() {
-        int rawX = rand.nextInt(1100);
-        int alignedX = 0;
-        while(alignedX < rawX) {
-            alignedX += setka_razm;
+        typeDelayCounter[type] = 0;
+        if (isGameOver()) {
+            showGameOver();
         }
-        return alignedX;
     }
-    private boolean canMove(int deltaX) {
-        if (!gameActive) return false;
-        int moveDistance = deltaX;
-        if (currentObject.type == 2) {
-            if (deltaX > 0) {
-                moveDistance = 150;
-            } else {
-                moveDistance = -150;
-            }
-        }
-        int newX = currentObject.objX + moveDistance;
-        if (newX < 0 || newX > 1100) return false;
-
-        for (int i = 0; i < currentObject.obj.length; i++) {
-            int blockX = newX + currentObject.obj[i][0] * setka_razm;
-            int blockY = currentObject.objY + currentObject.obj[i][1] * setka_razm;
-            if (blockX < 0 || blockX + setka_razm > 1200) {
+    private int getAlignedGridX() {
+        return rand.nextInt(gridWidth - 4);
+    }
+    private boolean canMove(int deltaGridX) {
+        if (!gameActive || currentObject == null || animatingDrop) return false;
+        for (Block block : currentObject.blocks) {
+            int newGridX = block.gridX + deltaGridX;
+            if (newGridX < 0 || newGridX >= gridWidth) {
                 return false;
             }
-            for (int j = 0; j < fallenCount; j++) {
-                if (fallenBlocks[j] != null) {
-                    if (Math.abs(blockX - fallenBlocks[j].x) < setka_razm &&
-                            Math.abs(blockY - fallenBlocks[j].y) < setka_razm) {
-                        return false;
-                    }
-                }
+            if (zanyata_li_yacheika(newGridX, block.gridY)) {
+                return false;
             }
         }
         return true;
@@ -272,7 +304,7 @@ public class game1 extends JPanel implements KeyListener {
                 drawBlock(g, fallenBlocks[i]);
             }
         }
-        if (currentObject != null) {
+        if (currentObject != null && !animatingDrop) {
             drawObject(g, currentObject);
         }
         g.setColor(new Color(255, 255, 255, 200));
@@ -288,6 +320,7 @@ public class game1 extends JPanel implements KeyListener {
         g.setFont(customFont);
         g.drawString("Фигур: " + (fallenCount / 3), 1050, 40);
     }
+
     private void drawBlock(Graphics g, Block block) {
         Image img = null;
         try {
@@ -317,45 +350,32 @@ public class game1 extends JPanel implements KeyListener {
             g.fillRect(block.x, block.y, setka_razm, setka_razm);
         }
     }
+
     private void drawObject(Graphics g, GameObject obj) {
-        Image img = null;
-        try {
-            if (obj.type == 1) {
-                img = Toolkit.getDefaultToolkit().getImage("images//sad.jpg");
-            } else if (obj.type == 2) {
-                img = Toolkit.getDefaultToolkit().getImage("images//angry.jpg");
-            } else {
-                img = Toolkit.getDefaultToolkit().getImage("images//happy.jpg");
-            }
-        } catch (Exception e) {
-            img = null;
-        }
-        for (int i = 0; i < obj.obj.length; i++) {
-            int blockX = obj.objX + obj.obj[i][0] * setka_razm;
-            int blockY = obj.objY + obj.obj[i][1] * setka_razm;
-            g.drawImage(img, blockX, blockY, setka_razm, setka_razm, this);
+        for (Block block : obj.blocks) {
+            drawBlock(g, block);
         }
     }
+
     @Override
     public void keyPressed(KeyEvent e) {
-        if (!gameActive) return;
-        int moveAmount = setka_razm;
-        if (currentObject.type == 1) {
-            moveAmount = 38;
-        } else if (currentObject.type == 2) {
-            moveAmount = 150;
-        }
+        if (!gameActive || currentObject == null || animatingDrop) return;
+
+        int deltaGridX = 0;
+
         if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            if (canMove(-moveAmount)) {
-                currentObject.objX -= moveAmount;
-                repaint();
-            }
+            deltaGridX = -1;
+        } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            deltaGridX = 1;
         }
-        if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            if (canMove(moveAmount)) {
-                currentObject.objX += moveAmount;
-                repaint();
+
+        if (deltaGridX != 0 && canMove(deltaGridX)) {
+            for (Block block : currentObject.blocks) {
+                block.gridX += deltaGridX;
+                block.x = block.gridX * setka_razm;
             }
+            currentObject.objX += deltaGridX * setka_razm;
+            repaint();
         }
     }
 
@@ -366,7 +386,7 @@ public class game1 extends JPanel implements KeyListener {
     public void keyTyped(KeyEvent e) {}
 
     public static void main(String[] args) {
-        JFrame f = new JFrame("Эмоциональный Тетрис");
+        JFrame f = new JFrame();
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         f.setSize(1200, 900);
         f.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -375,25 +395,29 @@ public class game1 extends JPanel implements KeyListener {
         f.setVisible(true);
         panel.requestFocusInWindow();
     }
-
     class GameObject {
         int objX;
         int objY;
         int[][] obj;
         int type;
-        GameObject(int objX, int objY, int[][] obj, int type) {
+        Block[] blocks;
+        GameObject(int objX, int objY, int[][] obj, int type, Block[] blocks) {
             this.objX = objX;
             this.objY = objY;
             this.obj = obj;
             this.type = type;
+            this.blocks = blocks;
         }
     }
-
     class Block {
-        int x, y, type;
-        Block(int x, int y, int type) {
+        int x, y;
+        int gridX, gridY;
+        int type;
+        Block(int x, int y, int gridX, int gridY, int type) {
             this.x = x;
             this.y = y;
+            this.gridX = gridX;
+            this.gridY = gridY;
             this.type = type;
         }
     }
