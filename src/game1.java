@@ -16,6 +16,7 @@ public class game1 extends JPanel implements KeyListener {
     int happyTickCounter = 0;
     boolean happyFastMode = false;
     Font customFont;
+    Font scoreFont;
 
     int[] typeDelayCounter = new int[4];
     int[] typeDelayThreshold = {2, 1, 3};
@@ -44,6 +45,7 @@ public class game1 extends JPanel implements KeyListener {
 
     int gridWidth = 16;
     int gridHeight = 10;
+    int score = 0;
 
     public game1(JFrame parent) {
         this.parentFrame = parent;
@@ -51,6 +53,7 @@ public class game1 extends JPanel implements KeyListener {
         addKeyListener(this);
         setFocusable(true);
         customFont = new Font("Arial", Font.BOLD, 24);
+        scoreFont = new Font("Arial", Font.BOLD, 36);
         createNewObject();
         gameTimer = new Timer(150, new ActionListener() {
             @Override
@@ -249,9 +252,9 @@ public class game1 extends JPanel implements KeyListener {
         boolean lineRemoved = true;
         while (lineRemoved) {
             lineRemoved = false;
-
             for (int gridY = gridHeight - 1; gridY >= 0; gridY--) {
-                if (hasBlocksInLine(gridY, 7)) {
+                if (hasposledBlocksInLine(gridY, 7)) {
+                    score += 100;
                     removeLineWithAnimation(gridY);
                     lineRemoved = true;
                     break;
@@ -299,7 +302,7 @@ public class game1 extends JPanel implements KeyListener {
         }
     }
 
-    private boolean hasBlocksInLine(int gridY, int minConsecutive) {
+    private boolean hasposledBlocksInLine(int gridY, int minposled) {
         boolean[] lineCells = new boolean[gridWidth];
         for (int i = 0; i < fallenCount; i++) {
             if (fallenBlocks[i] != null && fallenBlocks[i].gridY == gridY) {
@@ -308,10 +311,8 @@ public class game1 extends JPanel implements KeyListener {
                 }
             }
         }
-
         int maxConsecutive = 0;
         int currentConsecutive = 0;
-
         for (int x = 0; x < gridWidth; x++) {
             if (lineCells[x]) {
                 currentConsecutive++;
@@ -354,7 +355,7 @@ public class game1 extends JPanel implements KeyListener {
         gameActive = false;
         gameTimer.stop();
         JOptionPane.showMessageDialog(parentFrame,
-                "Игра окончена!\nСобрано блоков: " + fallenCount,
+                "Игра окончена!\nСобрано блоков: " + fallenCount + "\nОчки: " + score,
                 "Конец игры", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -362,7 +363,7 @@ public class game1 extends JPanel implements KeyListener {
         int[][] shape = figures[rand.nextInt(figures.length)];
         int type = rand.nextInt(3) + 1;
 
-        int startGridX = getAlignedGridX();
+        int startGridX = getAlignedGridX(shape);
         int startGridY = 0;
 
         Block[] blocks = new Block[shape.length];
@@ -396,8 +397,23 @@ public class game1 extends JPanel implements KeyListener {
         }
     }
 
-    private int getAlignedGridX() {
-        return rand.nextInt(gridWidth - 4);
+    private int getAlignedGridX(int[][] shape) {
+        int minX = 0;
+        int maxX = 0;
+        for (int i = 0; i < shape.length; i++) {
+            if (shape[i][0] < minX) minX = shape[i][0];
+            if (shape[i][0] > maxX) maxX = shape[i][0];
+        }
+
+        int shapeWidth = maxX - minX + 1;
+        int maxStart = gridWidth - shapeWidth;
+        int minStart = -minX;
+
+        if (minStart > maxStart) {
+            return minStart;
+        }
+
+        return minStart + rand.nextInt(maxStart - minStart + 1);
     }
 
     private boolean canMove(int deltaGridX) {
@@ -414,10 +430,8 @@ public class game1 extends JPanel implements KeyListener {
                 return false;
             }
         }
-
         return true;
     }
-
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -439,7 +453,10 @@ public class game1 extends JPanel implements KeyListener {
             drawObject(g, currentObject);
         }
 
-        g.setColor(new Color(255, 255, 255, 200));
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setStroke(new BasicStroke(2.5f));
+        g.setColor(Color.BLACK);
+
         for (int x = 0; x <= 1200; x += setka_razm) {
             g.drawLine(x, 50, x, 900);
         }
@@ -447,12 +464,28 @@ public class game1 extends JPanel implements KeyListener {
             g.drawLine(0, y, 1200, y);
         }
 
-        g.setColor(new Color(255, 255, 0, 200));
+        g2d.setStroke(new BasicStroke(4.0f));
         g.drawRect(0, 50, 1200, 850);
+
+        g.setColor(new Color(255, 255, 0));
+        g.setFont(scoreFont);
+
+        FontMetrics fm = g.getFontMetrics();
+        int xPos = 1050;
+        int yPos = 80;
+
+        g.setColor(Color.BLACK);
+        g.drawString("Счет: " + score, xPos - 2, yPos - 2);
+        g.drawString("Счет: " + score, xPos - 2, yPos + 2);
+        g.drawString("Счет: " + score, xPos + 2, yPos - 2);
+        g.drawString("Счет: " + score, xPos + 2, yPos + 2);
+
+        g.setColor(new Color(255, 255, 0));
+        g.drawString("Счет: " + score, xPos, yPos);
 
         g.setColor(Color.WHITE);
         g.setFont(customFont);
-        g.drawString("Фигур: " + (fallenCount / 3), 1050, 40);
+        g.drawString("Фигур: " + (fallenCount / 3), 1050, 120);
     }
 
     private void drawBlock(Graphics g, Block block) {
