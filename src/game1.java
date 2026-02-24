@@ -21,9 +21,6 @@ public class game1 extends JPanel implements KeyListener {
     int[] typeDelayCounter = new int[4];
     int[] typeDelayThreshold = {2, 1, 3};
 
-    int rotationDelayCounter = 0;
-    int rotationDelayThreshold = 5;
-
     boolean animatingDrop = false;
     int animationStep = 0;
     final int ANIMATION_STEPS = 15;
@@ -47,9 +44,12 @@ public class game1 extends JPanel implements KeyListener {
     int gridHeight = 10;
     int score = 0;
 
+    int[][] nextShape;
+    int nextType;
+
     public game1(JFrame parent) {
         this.parentFrame = parent;
-        setPreferredSize(new Dimension(1200, 900));
+        setPreferredSize(new Dimension(1500, 900));
         addKeyListener(this);
         setFocusable(true);
         customFont = new Font("Arial", Font.BOLD, 24);
@@ -78,7 +78,8 @@ public class game1 extends JPanel implements KeyListener {
                             int blockIndex = animatingBlocksIndices[i];
                             if (fallenBlocks[blockIndex] != null) {
                                 fallenBlocks[blockIndex].y = animationTargetY[i];
-                                fallenBlocks[blockIndex].gridY = (fallenBlocks[blockIndex].y - 50) / setka_razm;
+                                fallenBlocks[blockIndex].gridY =
+                                        (fallenBlocks[blockIndex].y - 50) / setka_razm;
                             }
                         }
 
@@ -91,14 +92,6 @@ public class game1 extends JPanel implements KeyListener {
 
                     repaint();
                     return;
-                }
-
-                rotationDelayCounter++;
-                if (rotationDelayCounter >= rotationDelayThreshold) {
-                    rotationDelayCounter = 0;
-                    if (canRotate() && !animatingDrop) {
-                        rotateObject();
-                    }
                 }
 
                 if (currentObject.type == 3) {
@@ -134,6 +127,11 @@ public class game1 extends JPanel implements KeyListener {
         gameTimer.start();
     }
 
+    private void generateNextFigure() {
+        nextShape = figures[rand.nextInt(figures.length)];
+        nextType = rand.nextInt(3) + 1;
+    }
+
     private boolean moveDown() {
         if (currentObject == null) return false;
 
@@ -161,6 +159,10 @@ public class game1 extends JPanel implements KeyListener {
     private boolean canRotate() {
         if (currentObject == null || animatingDrop) return false;
 
+        if (isSquareShape(currentObject.obj)) {
+            return false;
+        }
+
         int[][] rotated = rotateShape(currentObject.obj);
 
         int baseGridX = currentObject.blocks[0].gridX - currentObject.obj[0][0];
@@ -170,7 +172,8 @@ public class game1 extends JPanel implements KeyListener {
             int newGridX = baseGridX + rotated[i][0];
             int newGridY = baseGridY + rotated[i][1];
 
-            if (newGridX < 0 || newGridX >= gridWidth || newGridY < 0 || newGridY >= gridHeight) {
+            if (newGridX < 0 || newGridX >= gridWidth ||
+                    newGridY < 0 || newGridY >= gridHeight) {
                 return false;
             }
 
@@ -218,6 +221,20 @@ public class game1 extends JPanel implements KeyListener {
         repaint();
     }
 
+    private boolean isSquareShape(int[][] shape) {
+        if (shape.length != 4) return false;
+
+        int minX = 0, maxX = 0, minY = 0, maxY = 0;
+        for (int i = 0; i < shape.length; i++) {
+            if (shape[i][0] < minX) minX = shape[i][0];
+            if (shape[i][0] > maxX) maxX = shape[i][0];
+            if (shape[i][1] < minY) minY = shape[i][1];
+            if (shape[i][1] > maxY) maxY = shape[i][1];
+        }
+
+        return (maxX - minX == 1) && (maxY - minY == 1);
+    }
+
     private boolean isCellOccupied(int gridX, int gridY) {
         for (int i = 0; i < fallenCount; i++) {
             if (fallenBlocks[i] != null &&
@@ -252,8 +269,9 @@ public class game1 extends JPanel implements KeyListener {
         boolean lineRemoved = true;
         while (lineRemoved) {
             lineRemoved = false;
+
             for (int gridY = gridHeight - 1; gridY >= 0; gridY--) {
-                if (hasposledBlocksInLine(gridY, 7)) {
+                if (hasConsecutiveBlocksInLine(gridY, 7)) {
                     score += 100;
                     removeLineWithAnimation(gridY);
                     lineRemoved = true;
@@ -302,8 +320,9 @@ public class game1 extends JPanel implements KeyListener {
         }
     }
 
-    private boolean hasposledBlocksInLine(int gridY, int minposled) {
+    private boolean hasConsecutiveBlocksInLine(int gridY, int minConsecutive) {
         boolean[] lineCells = new boolean[gridWidth];
+
         for (int i = 0; i < fallenCount; i++) {
             if (fallenBlocks[i] != null && fallenBlocks[i].gridY == gridY) {
                 if (fallenBlocks[i].gridX >= 0 && fallenBlocks[i].gridX < gridWidth) {
@@ -311,8 +330,10 @@ public class game1 extends JPanel implements KeyListener {
                 }
             }
         }
+
         int maxConsecutive = 0;
         int currentConsecutive = 0;
+
         for (int x = 0; x < gridWidth; x++) {
             if (lineCells[x]) {
                 currentConsecutive++;
@@ -360,8 +381,12 @@ public class game1 extends JPanel implements KeyListener {
     }
 
     private void createNewObject() {
-        int[][] shape = figures[rand.nextInt(figures.length)];
-        int type = rand.nextInt(3) + 1;
+        if (nextShape == null) {
+            generateNextFigure();
+        }
+
+        int[][] shape = nextShape;
+        int type = nextType;
 
         int startGridX = getAlignedGridX(shape);
         int startGridY = 0;
@@ -390,11 +415,13 @@ public class game1 extends JPanel implements KeyListener {
         }
 
         typeDelayCounter[type] = 0;
-        rotationDelayCounter = 0;
 
         if (isGameOver()) {
             showGameOver();
+            return;
         }
+
+        generateNextFigure();
     }
 
     private int getAlignedGridX(int[][] shape) {
@@ -408,6 +435,10 @@ public class game1 extends JPanel implements KeyListener {
         int shapeWidth = maxX - minX + 1;
         int maxStart = gridWidth - shapeWidth;
         int minStart = -minX;
+
+        if (isSquareShape(shape)) {
+            return (gridWidth - 2) / 2;
+        }
 
         if (minStart > maxStart) {
             return minStart;
@@ -430,17 +461,19 @@ public class game1 extends JPanel implements KeyListener {
                 return false;
             }
         }
+
         return true;
     }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Image fon = Toolkit.getDefaultToolkit().getImage("image//fonscenet.png");
         if (fon != null) {
-            g.drawImage(fon, 0, 0, 1200, 900, this);
+            g.drawImage(fon, 0, 0, 1500, 900, this);
         } else {
             g.setColor(new Color(20, 20, 30));
-            g.fillRect(0, 0, 1200, 900);
+            g.fillRect(0, 0, 1500, 900);
         }
 
         for (int i = 0; i < fallenCount; i++) {
@@ -470,7 +503,6 @@ public class game1 extends JPanel implements KeyListener {
         g.setColor(new Color(255, 255, 0));
         g.setFont(scoreFont);
 
-        FontMetrics fm = g.getFontMetrics();
         int xPos = 1050;
         int yPos = 80;
 
@@ -486,6 +518,60 @@ public class game1 extends JPanel implements KeyListener {
         g.setColor(Color.WHITE);
         g.setFont(customFont);
         g.drawString("Фигур: " + (fallenCount / 3), 1050, 120);
+
+        if (nextShape != null) {
+            int previewX = 1250;
+            int previewY = 150;
+            int previewSize = 200;
+
+            g.setColor(new Color(0, 0, 0, 150));
+            g.fillRect(previewX, previewY, previewSize, previewSize);
+
+            g.setColor(Color.WHITE);
+            g.drawRect(previewX, previewY, previewSize, previewSize);
+
+            g.setFont(customFont);
+            g.drawString("Следующая:", previewX + 10, previewY - 10);
+
+            int cellSize = 30;
+
+            int minX = nextShape[0][0], maxX = nextShape[0][0];
+            int minY = nextShape[0][1], maxY = nextShape[0][1];
+            for (int i = 1; i < nextShape.length; i++) {
+                if (nextShape[i][0] < minX) minX = nextShape[i][0];
+                if (nextShape[i][0] > maxX) maxX = nextShape[i][0];
+                if (nextShape[i][1] < minY) minY = nextShape[i][1];
+                if (nextShape[i][1] > maxY) maxY = nextShape[i][1];
+            }
+
+            int shapeWidth = (maxX - minX + 1) * cellSize;
+            int shapeHeight = (maxY - minY + 1) * cellSize;
+
+            int offsetX = previewX + (previewSize - shapeWidth) / 2;
+            int offsetY = previewY + (previewSize - shapeHeight) / 2;
+
+            for (int i = 0; i < nextShape.length; i++) {
+                int localX = nextShape[i][0] - minX;
+                int localY = nextShape[i][1] - minY;
+
+                int px = offsetX + localX * cellSize;
+                int py = offsetY + localY * cellSize;
+
+                Color color;
+                if (nextType == 1) {            // грусть
+                    color = new Color(128, 0, 128); // фиолетовый
+                } else if (nextType == 2) {     // гнев
+                    color = Color.RED;
+                } else {                        // радость
+                    color = Color.YELLOW;
+                }
+                g.setColor(color);
+                g.fillRect(px, py, cellSize, cellSize);
+
+                g.setColor(Color.BLACK);
+                g.drawRect(px, py, cellSize, cellSize);
+            }
+        }
     }
 
     private void drawBlock(Graphics g, Block block) {
@@ -506,12 +592,12 @@ public class game1 extends JPanel implements KeyListener {
             g.drawImage(img, block.x, block.y, setka_razm, setka_razm, this);
         } else {
             Color color;
-            if (block.type == 1) {
-                color = Color.BLUE;
-            } else if (block.type == 2) {
+            if (block.type == 1) {          // грусть
+                color = new Color(128, 0, 128); // фиолетовый
+            } else if (block.type == 2) {   // гнев
                 color = Color.RED;
-            } else {
-                color = Color.GREEN;
+            } else {                        // радость
+                color = Color.YELLOW;
             }
             g.setColor(color);
             g.fillRect(block.x, block.y, setka_razm, setka_razm);
@@ -528,14 +614,17 @@ public class game1 extends JPanel implements KeyListener {
     public void keyPressed(KeyEvent e) {
         if (!gameActive || currentObject == null || animatingDrop) return;
 
+        int key = e.getKeyCode();
         int deltaGridX = 0;
 
-        if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+        if (key == KeyEvent.VK_LEFT) {
             deltaGridX = -1;
-        } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+        } else if (key == KeyEvent.VK_RIGHT) {
             deltaGridX = 1;
-        } else if (e.getKeyCode() == KeyEvent.VK_UP) {
-            rotateObject();
+        } else if (key == KeyEvent.VK_SPACE) {
+            if (!isSquareShape(currentObject.obj)) {
+                rotateObject();
+            }
             return;
         }
 
@@ -549,16 +638,13 @@ public class game1 extends JPanel implements KeyListener {
         }
     }
 
-    @Override
-    public void keyReleased(KeyEvent e) {}
-
-    @Override
-    public void keyTyped(KeyEvent e) {}
+    @Override public void keyReleased(KeyEvent e) {}
+    @Override public void keyTyped(KeyEvent e) {}
 
     public static void main(String[] args) {
         JFrame f = new JFrame("Эмоциональный Тетрис");
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.setSize(1200, 900);
+        f.setSize(1500, 900);
         f.setExtendedState(JFrame.MAXIMIZED_BOTH);
         game1 panel = new game1(f);
         f.add(panel);
@@ -596,3 +682,4 @@ public class game1 extends JPanel implements KeyListener {
         }
     }
 }
+
