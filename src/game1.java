@@ -4,7 +4,6 @@ import java.awt.event.*;
 import java.util.Random;
 
 public class game1 extends JPanel implements KeyListener {
-
     Block[] fallenBlocks = new Block[1000];
     int fallenCount = 0;
     GameObject currentObject;
@@ -17,19 +16,15 @@ public class game1 extends JPanel implements KeyListener {
     boolean happyFastMode = false;
     Font customFont;
     Font scoreFont;
-
     int[] typeDelayCounter = new int[4];
     int[] typeDelayThreshold = {2, 1, 3};
-
     boolean animatingDrop = false;
     int animationStep = 0;
     final int ANIMATION_STEPS = 15;
-
     int[] animatingBlocksIndices = new int[1000];
     int[] animationStartY = new int[1000];
     int[] animationTargetY = new int[1000];
     int animatingBlocksCount = 0;
-
     int[][][] figures = {
             {{0,0}, {1,0}, {2,0}},
             {{0,0}, {0,1}, {0,2}},
@@ -167,11 +162,9 @@ public class game1 extends JPanel implements KeyListener {
 
         int baseGridX = currentObject.blocks[0].gridX - currentObject.obj[0][0];
         int baseGridY = currentObject.blocks[0].gridY - currentObject.obj[0][1];
-
         for (int i = 0; i < rotated.length; i++) {
             int newGridX = baseGridX + rotated[i][0];
             int newGridY = baseGridY + rotated[i][1];
-
             if (newGridX < 0 || newGridX >= gridWidth ||
                     newGridY < 0 || newGridY >= gridHeight) {
                 return false;
@@ -181,7 +174,6 @@ public class game1 extends JPanel implements KeyListener {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -194,30 +186,23 @@ public class game1 extends JPanel implements KeyListener {
             rotated[i][0] = -y;
             rotated[i][1] = x;
         }
-
         return rotated;
     }
 
     private void rotateObject() {
         if (!canRotate()) return;
-
         int[][] rotated = rotateShape(currentObject.obj);
-
         int baseGridX = currentObject.blocks[0].gridX - currentObject.obj[0][0];
         int baseGridY = currentObject.blocks[0].gridY - currentObject.obj[0][1];
-
         currentObject.obj = rotated;
-
         for (int i = 0; i < currentObject.blocks.length; i++) {
             int newGridX = baseGridX + rotated[i][0];
             int newGridY = baseGridY + rotated[i][1];
-
             currentObject.blocks[i].gridX = newGridX;
             currentObject.blocks[i].gridY = newGridY;
             currentObject.blocks[i].x = newGridX * setka_razm;
             currentObject.blocks[i].y = 50 + newGridY * setka_razm;
         }
-
         repaint();
     }
 
@@ -397,7 +382,6 @@ public class game1 extends JPanel implements KeyListener {
             int gridY = startGridY + shape[i][1];
             int pixelX = gridX * setka_razm;
             int pixelY = 50 + gridY * setka_razm;
-
             blocks[i] = new Block(pixelX, pixelY, gridX, gridY, type);
         }
 
@@ -413,14 +397,11 @@ public class game1 extends JPanel implements KeyListener {
             happyTickCounter = 0;
             happyFastMode = false;
         }
-
         typeDelayCounter[type] = 0;
-
         if (isGameOver()) {
             showGameOver();
             return;
         }
-
         generateNextFigure();
     }
 
@@ -435,7 +416,6 @@ public class game1 extends JPanel implements KeyListener {
         int shapeWidth = maxX - minX + 1;
         int maxStart = gridWidth - shapeWidth;
         int minStart = -minX;
-
         if (isSquareShape(shape)) {
             return (gridWidth - 2) / 2;
         }
@@ -443,7 +423,6 @@ public class game1 extends JPanel implements KeyListener {
         if (minStart > maxStart) {
             return minStart;
         }
-
         return minStart + rand.nextInt(maxStart - minStart + 1);
     }
 
@@ -470,10 +449,19 @@ public class game1 extends JPanel implements KeyListener {
         super.paintComponent(g);
         Image fon = Toolkit.getDefaultToolkit().getImage("image//fonscenet.png");
         if (fon != null) {
-            g.drawImage(fon, 0, 0, 1500, 900, this);
+            g.drawImage(fon, 0, 0, getWidth(), getHeight(), this);
         } else {
             g.setColor(new Color(20, 20, 30));
-            g.fillRect(0, 0, 1500, 900);
+            g.fillRect(0, 0, getWidth(), getHeight());
+        }
+
+        int brightness = GlobalSettings.brightness;
+        int alpha = (int) ((100 - brightness) * 2.55);
+        if (alpha > 0) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(new Color(0, 0, 0, alpha));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.dispose();
         }
 
         for (int i = 0; i < fallenCount; i++) {
@@ -523,18 +511,13 @@ public class game1 extends JPanel implements KeyListener {
             int previewX = 1250;
             int previewY = 150;
             int previewSize = 200;
-
             g.setColor(new Color(0, 0, 0, 150));
             g.fillRect(previewX, previewY, previewSize, previewSize);
-
             g.setColor(Color.WHITE);
             g.drawRect(previewX, previewY, previewSize, previewSize);
-
             g.setFont(customFont);
             g.drawString("Следующая:", previewX + 10, previewY - 10);
-
             int cellSize = 30;
-
             int minX = nextShape[0][0], maxX = nextShape[0][0];
             int minY = nextShape[0][1], maxY = nextShape[0][1];
             for (int i = 1; i < nextShape.length; i++) {
@@ -543,13 +526,10 @@ public class game1 extends JPanel implements KeyListener {
                 if (nextShape[i][1] < minY) minY = nextShape[i][1];
                 if (nextShape[i][1] > maxY) maxY = nextShape[i][1];
             }
-
             int shapeWidth = (maxX - minX + 1) * cellSize;
             int shapeHeight = (maxY - minY + 1) * cellSize;
-
             int offsetX = previewX + (previewSize - shapeWidth) / 2;
             int offsetY = previewY + (previewSize - shapeHeight) / 2;
-
             for (int i = 0; i < nextShape.length; i++) {
                 int localX = nextShape[i][0] - minX;
                 int localY = nextShape[i][1] - minY;
@@ -558,11 +538,11 @@ public class game1 extends JPanel implements KeyListener {
                 int py = offsetY + localY * cellSize;
 
                 Color color;
-                if (nextType == 1) {            // грусть
-                    color = new Color(128, 0, 128); // фиолетовый
-                } else if (nextType == 2) {     // гнев
+                if (nextType == 1) {
+                    color = new Color(128, 0, 128);
+                } else if (nextType == 2) {
                     color = Color.RED;
-                } else {                        // радость
+                } else {
                     color = Color.YELLOW;
                 }
                 g.setColor(color);
@@ -592,11 +572,11 @@ public class game1 extends JPanel implements KeyListener {
             g.drawImage(img, block.x, block.y, setka_razm, setka_razm, this);
         } else {
             Color color;
-            if (block.type == 1) {          // грусть
-                color = new Color(128, 0, 128); // фиолетовый
-            } else if (block.type == 2) {   // гнев
+            if (block.type == 1) {
+                color = new Color(128, 0, 128);
+            } else if (block.type == 2) {
                 color = Color.RED;
-            } else {                        // радость
+            } else {
                 color = Color.YELLOW;
             }
             g.setColor(color);
@@ -644,10 +624,32 @@ public class game1 extends JPanel implements KeyListener {
     public static void main(String[] args) {
         JFrame f = new JFrame("Эмоциональный Тетрис");
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        f.setSize(1500, 900);
         f.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        f.setLayout(new BorderLayout());
+
         game1 panel = new game1(f);
-        f.add(panel);
+        f.add(panel, BorderLayout.CENTER);
+
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+
+        JButton backButton = new JButton("Back");
+        backButton.setFont(new Font("Arial", Font.BOLD, 20));
+        backButton.setBackground(Color.GREEN);
+        backButton.setOpaque(true);
+        backButton.setBorderPainted(true);
+
+        topPanel.add(backButton);
+        f.add(topPanel, BorderLayout.NORTH);
+
+        backButton.addActionListener(e -> {
+            panel.gameActive = false;
+            panel.gameTimer.stop();
+            f.dispose();
+            Main.main(new String[]{});
+        });
+
         f.setVisible(true);
         panel.requestFocusInWindow();
     }
@@ -682,4 +684,3 @@ public class game1 extends JPanel implements KeyListener {
         }
     }
 }
-
