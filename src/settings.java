@@ -11,19 +11,15 @@ public class settings extends JComponent {
         f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         f.setExtendedState(JFrame.MAXIMIZED_BOTH);
         f.setLayout(new BorderLayout());
-
         BrightnessPanel panel = new BrightnessPanel();
         panel.setLayout(null);
-
         JLabel labelBrightness = new JLabel("Яркость:");
         labelBrightness.setFont(new Font("Arial", Font.BOLD, 20));
         labelBrightness.setBounds(100, 250, 120, 30);
         panel.add(labelBrightness);
-
-        JSlider sliderBrightness = new JSlider(0, 100, GlobalSettings.brightness);
-        sliderBrightness.setBounds(230, 246, 400, 50);
-        panel.add(sliderBrightness);
-
+        JSlider yarkost = new JSlider(0, 100, GlobalSettings.brightness);
+        yarkost.setBounds(230, 246, 400, 50);
+        panel.add(yarkost);
         JButton backButton = new JButton("Back");
         backButton.setFont(new Font("Arial", Font.BOLD, 20));
         backButton.setBounds(20, 20, 180, 50);
@@ -31,11 +27,10 @@ public class settings extends JComponent {
         backButton.setOpaque(true);
         backButton.setBorderPainted(true);
         panel.add(backButton);
-
-        sliderBrightness.addChangeListener(new ChangeListener() {
+        yarkost.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                int value = sliderBrightness.getValue();
+                int value = yarkost.getValue();
                 GlobalSettings.brightness = value;
                 panel.setBrightness(value);
             }
@@ -49,22 +44,18 @@ public class settings extends JComponent {
         f.add(panel, BorderLayout.CENTER);
         f.setVisible(true);
     }
-
     static class BrightnessPanel extends JPanel {
         private int brightness = GlobalSettings.brightness;
-
         public void setBrightness(int value) {
             this.brightness = value;
             repaint();
         }
-
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Image i1 = Toolkit.getDefaultToolkit()
                     .getImage("C:/Users/maxxb/hey/images/background.png");
             g.drawImage(i1, 0, 0, getWidth(), getHeight(), this);
-
             int alpha = (int) ((100 - brightness) * 2.55);
             if (alpha > 0) {
                 Graphics2D g2 = (Graphics2D) g.create();

@@ -356,7 +356,6 @@ public class game1 extends JPanel implements KeyListener {
         }
         return false;
     }
-
     private void showGameOver() {
         gameActive = false;
         gameTimer.stop();
@@ -364,7 +363,6 @@ public class game1 extends JPanel implements KeyListener {
                 "Игра окончена!\nСобрано блоков: " + fallenCount + "\nОчки: " + score,
                 "Конец игры", JOptionPane.INFORMATION_MESSAGE);
     }
-
     private void createNewObject() {
         if (nextShape == null) {
             generateNextFigure();
@@ -404,7 +402,6 @@ public class game1 extends JPanel implements KeyListener {
         }
         generateNextFigure();
     }
-
     private int getAlignedGridX(int[][] shape) {
         int minX = 0;
         int maxX = 0;
@@ -425,7 +422,6 @@ public class game1 extends JPanel implements KeyListener {
         }
         return minStart + rand.nextInt(maxStart - minStart + 1);
     }
-
     private boolean canMove(int deltaGridX) {
         if (!gameActive || currentObject == null || animatingDrop) return false;
 
@@ -443,7 +439,6 @@ public class game1 extends JPanel implements KeyListener {
 
         return true;
     }
-
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -553,7 +548,6 @@ public class game1 extends JPanel implements KeyListener {
             }
         }
     }
-
     private void drawBlock(Graphics g, Block block) {
         Image img = null;
         try {
@@ -583,13 +577,11 @@ public class game1 extends JPanel implements KeyListener {
             g.fillRect(block.x, block.y, setka_razm, setka_razm);
         }
     }
-
     private void drawObject(Graphics g, GameObject obj) {
         for (Block block : obj.blocks) {
             drawBlock(g, block);
         }
     }
-
     @Override
     public void keyPressed(KeyEvent e) {
         if (!gameActive || currentObject == null || animatingDrop) return;
@@ -617,10 +609,8 @@ public class game1 extends JPanel implements KeyListener {
             repaint();
         }
     }
-
     @Override public void keyReleased(KeyEvent e) {}
     @Override public void keyTyped(KeyEvent e) {}
-
     public static void main(String[] args) {
         JFrame f = new JFrame("Эмоциональный Тетрис");
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -653,7 +643,6 @@ public class game1 extends JPanel implements KeyListener {
         f.setVisible(true);
         panel.requestFocusInWindow();
     }
-
     class GameObject {
         int objX;
         int objY;
@@ -669,7 +658,6 @@ public class game1 extends JPanel implements KeyListener {
             this.blocks = blocks;
         }
     }
-
     class Block {
         int x, y;
         int gridX, gridY;

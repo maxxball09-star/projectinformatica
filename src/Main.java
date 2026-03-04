@@ -4,8 +4,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class Main extends JComponent {
-    private Image a;
-
+    Image a;
     public Main(String b) {
         this.a = Toolkit.getDefaultToolkit().getImage(b);
         setOpaque(false);
@@ -28,7 +27,6 @@ public class Main extends JComponent {
         f.setLayout(new BorderLayout());
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         f.setExtendedState(JFrame.MAXIMIZED_BOTH);
-
         JPanel p = new JPanel() {
             private final Image bg =
                     Toolkit.getDefaultToolkit().getImage("C:/Users/maxxb/hey/images/background.png");
@@ -39,7 +37,6 @@ public class Main extends JComponent {
                 if (bg != null) {
                     g.drawImage(bg, 0, 0, getWidth(), getHeight(), this);
                 }
-
                 int brightness = GlobalSettings.brightness;
                 int alpha = (int) ((100 - brightness) * 2.55);
                 if (alpha > 0) {
@@ -51,19 +48,15 @@ public class Main extends JComponent {
             }
         };
         p.setLayout(null);
-
         JButton btn1 = new JButton();
         JButton btn2 = new JButton();
         JButton btn3 = new JButton();
-
         p.putClientProperty("btn1", btn1);
         p.putClientProperty("btn2", btn2);
         p.putClientProperty("btn3", btn3);
-
         p.add(btn1);
         p.add(btn2);
         p.add(btn3);
-
         btn1.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -131,7 +124,6 @@ public class Main extends JComponent {
         Image img = Toolkit.getDefaultToolkit().getImage(imagePath);
         Image scaledImg = img.getScaledInstance(w, h, Image.SCALE_SMOOTH);
         ImageIcon icon = new ImageIcon(scaledImg);
-
         btn.setIcon(icon);
         btn.setBorderPainted(false);
         btn.setContentAreaFilled(false);
